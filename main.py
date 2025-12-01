@@ -6,13 +6,6 @@
 # =============================================================================
 import numpy as np
 
-f1 = lambda x: np.sign(x) * x + x ** 2
-f2 = lambda x: np.sign(x) * (x ** 2)
-f3 = lambda x: (abs(np.sin(5 * x))) ** 3
-f4_1 = lambda x: 1 / (1 + 1 * (x ** 2))
-f4_25 = lambda x: 1 / (1 + 25 * (x ** 2))
-f4_100 = lambda x: 1 / (1 + 100 * (x ** 2))
-f5 = lambda x: np.sign(x)
 
 def chebyshev_nodes(n: int = 10) -> np.ndarray | None:
     """Funkcja generująca wektor węzłów Czebyszewa drugiego rodzaju (n,) 
@@ -28,11 +21,14 @@ def chebyshev_nodes(n: int = 10) -> np.ndarray | None:
     if not isinstance(n, int) or n <= 0:
         return None
     
-    res = np.ndarray([])
-    for k in range(0, n + 1):
-        x_k = np.cos((np.pi * np.arange(n)) / (n - 1))
-        np.append(res, x_k)
-    return res
+    if n == 1:
+        return np.array([1.0])
+    
+    res = np.zeros(n)
+    for k in range(n):
+        res[k] = np.cos((np.pi * k) / (n - 1))
+    
+    return np.sort(res)[::-1]
     pass
 
 
@@ -48,12 +44,13 @@ def bar_cheb_weights(n: int = 10) -> np.ndarray | None:
     """
     if not isinstance(n, int) or n <= 0:
         return None
-    w = np.ndarray([])
-    for i in range(0, n + 1):
-        if i == 0 or i == n:
-            np.append(w, (-1) ** i * 0.5)
+    
+    w = np.zeros(n)
+    for i in range(n):
+        if i == 0 or i == (n - 1):
+            w[i] = 0.5 * ((-1) ** i )
         else:
-            np.append(w, (-1) ** i * 1)
+            w[i] = (-1) ** i
     return w
     pass
 
@@ -83,10 +80,15 @@ def barycentric_inte(
     if xi.size != yi.size or xi.size != wi.size:
         return None
     
-    Y = np.ndarray([])
+    Y = np.zeros(x.size)
     for j in range(x.size):
-        L = wi[j] / (x[j] - xi[j])
-        np.append(Y, yi[j] @ L / np.sum(L))
+        idx = np.where(x[j] == xi)[0]
+        if idx.size > 0:
+            Y[j] = yi[idx[0]]
+            continue
+        else:
+            L = wi / (x[j] - xi)
+            Y[j] = np.sum(L * yi) / np.sum(L)
     return Y
     pass
 
@@ -111,14 +113,16 @@ def L_inf(
         return None
     if not isinstance(x, (int, float, list, np.ndarray)):
         return None
-    if xr.size != x.size:
-        return None
     
     if isinstance(xr, (int, float)) and isinstance(x, (int, float)):
         return abs(xr - x)
-    elif isinstance(xr, list) and isinstance(x, list):
-        diff = []
-        for i in range(len(xr)):
-            diff = abs(xr[i] - x[i])
-        return max(diff)
+    
+    xr = np.array(xr, dtype=float)
+    x = np.array(x, dtype=float)
+
+    if xr.shape != x.shape:
+        return None
+    
+    diff = np.abs(xr - x)
+    return float(np.max(diff))
     pass
